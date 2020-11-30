@@ -1,0 +1,76 @@
+#+TITLE: Small workload
+
+This workload aims at computing the total energy of the water molecule
+molecule in the tiny 6-31G basis set.
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+#!/bin/bash
+
+source ../../qp2/quantum_package.rc
+#+end_src
+
+#+RESULTS:
+
+We assume here that the =quantum_package.rc= file in the =qp2=
+directory has been sourced successfully.
+
+
+* Create EZFIO directory 
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+qp_create_ezfio -b 6-31g h2o.xyz -o h2o
+#+end_src
+
+#+RESULTS:
+: h2o
+
+A directory named =h2o= has been created and contains the geometry
+and the basis set.
+
+* Hartree-Fock
+
+To produce a set of molecular orbitals, a Hartree-Fock calculation is run:
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+qp_run scf h2o > h2o.scf.out
+#+end_src
+
+The expected energy is =-75.98399747= atomic units:
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+grep "SCF energy" h2o.scf.out
+#+end_src
+
+#+RESULTS:
+: * SCF energy                                        -75.98399747019465
+
+* Run a FCI calculation
+
+Freeze core electrons:
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+qp_set_frozen_core h2o
+#+end_src
+
+#+RESULTS:
+: Core     : (1)
+: Inactive
+: Active   : (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
+: Virtual
+: Deleted
+
+
+Run FCI calculation:
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+qp_run fci h2o > h2o.fci.out
+#+end_src
+
+The final energy should be =-76.119918= atomic units.
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+grep "E+PT2" h2o.fci.out | tail -1
+#+end_src
+
+#+RESULTS:
+: E+PT2           =   -76.1199182051183       +/-   0.000000000000000E+000
