@@ -1,0 +1,93 @@
+#+TITLE: Large workload
+
+This workload aims at computing the total energy of the benzene molecule
+molecule in the cc-pVDZ basis set.
+It was run on a single node of the Irene-Rome (TGCC) cluster as a reference.
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+#!/bin/bash
+#MSUB -N 4    # Nb nodes (x128 procs)
+#MSUB -n 4    # Nb MPI (1 per node)
+#MSUB -c 128  # Nb cores/task
+#MSUB -x      # Exclusive
+#MSUB -q rome
+
+
+source ../../qp2/quantum_package.rc
+
+export OMP_NUM_THREADS=128
+export OMP_PROC_BIND=false
+#+end_src
+
+#+RESULTS:
+
+We assume here that the =quantum_package.rc= file in the =qp2=
+directory has been sourced successfully.
+
+
+* Create EZFIO directory 
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+qp_create_ezfio -b cc-pvdz benzene.xyz -o benzene
+#+end_src
+
+#+RESULTS:
+: benzene
+
+A directory named =benzene= has been created and contains the geometry
+and the basis set.
+
+* Hartree-Fock
+
+To produce a set of molecular orbitals, a Hartree-Fock calculation is run:
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+qp_run scf benzene > benzene.scf.out
+#+end_src
+
+The expected energy is =-230.722245= atomic units:
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+grep "SCF energy" benzene.scf.out
+#+end_src
+
+#+RESULTS:
+: * SCF energy                                        -230.7222449856610    
+
+* Run a FCI calculation
+
+Freeze core electrons:
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+qp_set_frozen_core benzene 
+#+end_src
+
+#+RESULTS:
+: Core     : (1, 2, 3, 4, 5, 6)
+: Inactive
+: Active   : (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114)
+: Virtual
+: Deleted
+
+Change default parameter:
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+qp set_file benzene
+qp set perturbation pt2_relative_error 0.005
+#+end_src
+
+Run FCI calculation:
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+qp_srun fci benzene > benzene.fci.out
+#+end_src
+
+The final energy should be =-231.5360(4)= atomic units.
+
+#+begin_src bash :session s1 :tangle run.sh :results output
+grep "E+PT2" benzene.fci.out | tail -1
+#+end_src
+
+#+RESULTS:
+:  E+PT2           =   -231.535963505524       +/-   5.063157699661631E-004
+
