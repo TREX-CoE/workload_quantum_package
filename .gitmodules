@@ -1,0 +1,4 @@
+[submodule "qp2"]
+	path = qp2
+	url = https://github.com/QuantumPackage/qp2.git
+	branch = dev
